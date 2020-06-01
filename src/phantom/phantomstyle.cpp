@@ -10,6 +10,7 @@
 #include <QtGui/qpainter.h>
 #include <QtGui/qpolygon.h>
 #include <QtGui/qwindow.h>
+#include <QtGui/qpainterpath.h>
 #include <QtWidgets/qabstractscrollarea.h>
 #include <QtWidgets/qapplication.h>
 #include <QtWidgets/qdrawutil.h>
