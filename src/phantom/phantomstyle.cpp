@@ -4946,7 +4946,7 @@ int PhantomStyle::styleHint(StyleHint hint, const QStyleOption* option,
   case SH_PrintDialog_RightAlignButtons:
   case SH_FontDialog_SelectAssociatedText:
   case SH_ComboBox_ListMouseTracking:
-  case SH_ScrollBar_StopMouseOverSlider:
+  case SH_Slider_StopMouseOverSlider:
   case SH_ScrollBar_MiddleClickAbsolutePosition:
   case SH_TitleBar_AutoRaise:
   case SH_TitleBar_NoBorder:
