@@ -8,6 +8,7 @@
 #include <QtCore/qstring.h>
 #include <QtGui/qfont.h>
 #include <QtGui/qpainter.h>
+#include <QtGui/qpainterpath.h>
 #include <QtGui/qpolygon.h>
 #include <QtGui/qwindow.h>
 #include <QtGui/qpainterpath.h>
@@ -361,7 +362,6 @@ Q_NEVER_INLINE void PhSwatch::loadFromQPalette(const QPalette& pal) {
     colors[S_button] = Dc::adjustLightness(colors[S_button], 0.01);
   colors[S_base] = pal.color(QPalette::Base);
   colors[S_text] = pal.color(QPalette::Text);
-  colors[S_text] = pal.color(QPalette::WindowText);
   colors[S_windowText] = pal.color(QPalette::WindowText);
   colors[S_highlight] = pal.color(QPalette::Highlight);
   colors[S_highlightedText] = pal.color(QPalette::HighlightedText);
@@ -4464,7 +4464,27 @@ QSize PhantomStyle::sizeFromContents(ContentsType type,
     auto pbopt = qstyleoption_cast<const QStyleOptionButton*>(option);
     if (!pbopt || pbopt->text.isEmpty())
       break;
-    int hpad = (int)((qreal)pbopt->fontMetrics.height() *
+    int fmheight = pbopt->fontMetrics.height();
+    // In high DPI, the measured height of a line of text and the height of the
+    // font as reported by QFontMetrics may differ slightly. This is fine,
+    // except that we want QPushButtons to have the same height as QComboBoxes,
+    // assuming the QPushButton's text isn't multi-line. (QComboBox does not
+    // handle multi-line text.) QPushButton will give us a contents height from
+    // the actual measured text. QComboBox (and others) will use the font
+    // metrics height. Workaround: if there's text and the height is slightly
+    // different, adjust by difference in the font metrics height and measured
+    // text height. We'll try to avoid clobbering non-standard heights caused
+    // by icons or other things.
+    if (!pbopt->text.isEmpty()) {
+      int vdiff = qAbs(fmheight - size.height());
+      // Limit height diff to 2 (scaled) pixels. It's possible that this still
+      // clobbers a non-standard height caused by a special-sized icon or
+      // something, but there's not much we can do about it.
+      if (vdiff != 0 && vdiff <= 2) {
+        newSize.rheight() += fmheight - size.height();
+      }
+    }
+    int hpad = (int)((qreal)fmheight *
                      Phantom::PushButton_HorizontalPaddingFontHeightRatio);
     newSize.rwidth() += hpad * 2;
 #if QT_CONFIG(dialogbuttonbox)
@@ -5032,12 +5052,14 @@ int PhantomStyle::styleHint(StyleHint hint, const QStyleOption* option,
   case SH_Table_GridLineColor: {
     using namespace Phantom::SwatchColors;
     namespace Ph = Phantom;
+    if (!option)
+      return 0;
     auto ph_swatchPtr = Ph::getCachedSwatchOfQPalette(
         &d->swatchCache, &d->headSwatchFastKey, option->palette);
     const Ph::PhSwatch& swatch = *ph_swatchPtr.data();
     // Qt code in table views for drawing grid lines is broken. See case for
     // CE_ItemViewItem painting for more information.
-    return option ? (int)swatch.color(S_base_divider).rgb() : 0;
+    return (int)swatch.color(S_base_divider).rgb();
   }
   case SH_MessageBox_TextInteractionFlags:
     return Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse;
